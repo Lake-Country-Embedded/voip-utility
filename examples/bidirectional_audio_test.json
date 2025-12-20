@@ -1,0 +1,34 @@
+{
+  "name": "Bidirectional Audio Test",
+  "description": "Verify audio works in both directions of the call",
+  "timeout": 35,
+
+  "caller": {
+    "account": "ext6004",
+    "uri": "sip:6003@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/caller_received.wav"},
+      {"action": "wait", "seconds": 1},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 5},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6003",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/receiver_received.wav"},
+      {"action": "wait", "seconds": 2},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3
+  }
+}

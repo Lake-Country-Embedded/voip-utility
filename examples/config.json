@@ -1,0 +1,43 @@
+{
+  "accounts": [
+    {
+      "id": "ext6004",
+      "username": "6004",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 3600,
+      "enabled": true
+    },
+    {
+      "id": "ext6003",
+      "username": "6003",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 3600,
+      "enabled": true
+    }
+  ],
+  "audio": {
+    "sample_rate": 16000,
+    "frame_duration_ms": 20,
+    "default_codec": "PCMU"
+  },
+  "beep_detection": {
+    "min_level_db": -40,
+    "min_duration_sec": 0.2,
+    "max_duration_sec": 0.6,
+    "target_freq_hz": 0,
+    "freq_tolerance_hz": 50,
+    "gap_duration_sec": 0.1
+  },
+  "recordings_dir": "./recordings",
+  "tests_dir": "./tests",
+  "log_level": "info",
+  "json_output": false
+}

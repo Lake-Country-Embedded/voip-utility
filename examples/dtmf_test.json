@@ -1,0 +1,30 @@
+{
+  "name": "DTMF Test",
+  "description": "Test DTMF sending and receiving through SIP call",
+  "timeout": 30,
+
+  "caller": {
+    "account": "ext6004",
+    "uri": "sip:6003@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 1},
+      {"action": "send_dtmf", "digits": "12345"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6003",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "expect_dtmf", "pattern": "12345", "timeout": 10}
+    ]
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

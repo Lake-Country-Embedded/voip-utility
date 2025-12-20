@@ -1,0 +1,32 @@
+{
+  "name": "Audio Beep Test",
+  "description": "Test audio playback and beep detection through SIP call",
+  "timeout": 30,
+
+  "caller": {
+    "account": "ext6004",
+    "uri": "sip:6003@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 3},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6003",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/audio_test.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3,
+    "beep_frequency": 1000
+  }
+}

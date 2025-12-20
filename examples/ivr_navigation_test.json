@@ -1,0 +1,34 @@
+{
+  "name": "IVR Navigation Test",
+  "description": "Navigate through an IVR menu using DTMF",
+  "timeout": 45,
+
+  "caller": {
+    "account": "ext6004",
+    "uri": "sip:8000@192.168.10.10",
+    "timeout": 15,
+    "actions": [
+      {"action": "wait", "seconds": 5},
+      {"action": "send_dtmf", "digits": "1"},
+      {"action": "wait", "seconds": 3},
+      {"action": "send_dtmf", "digits": "2"},
+      {"action": "wait", "seconds": 3},
+      {"action": "send_dtmf", "digits": "#"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6003",
+    "auto_answer": true,
+    "timeout": 30,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/ivr_session.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

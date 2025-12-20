@@ -1,0 +1,32 @@
+{
+  "name": "Voicemail Deposit Test",
+  "description": "Leave a voicemail message and confirm with DTMF",
+  "timeout": 45,
+
+  "caller": {
+    "account": "ext6004",
+    "uri": "sip:*986003@192.168.10.10",
+    "timeout": 20,
+    "actions": [
+      {"action": "wait", "seconds": 8},
+      {"action": "play_audio", "file": "test_audio/test_message.wav"},
+      {"action": "wait", "seconds": 1},
+      {"action": "send_dtmf", "digits": "#"},
+      {"action": "wait", "seconds": 2},
+      {"action": "send_dtmf", "digits": "1"},
+      {"action": "wait", "seconds": 1},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6003",
+    "auto_answer": false,
+    "timeout": 30,
+    "actions": []
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

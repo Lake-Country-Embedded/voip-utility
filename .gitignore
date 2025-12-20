@@ -1,0 +1,52 @@
+# Build directory
+build/
+builddir/
+
+# Meson subprojects (keep .wrap files)
+subprojects/cjson/
+subprojects/packagecache/
+
+# Recordings (test outputs)
+recordings/*.wav
+recordings/*.png
+recordings/*.raw
+!recordings/.gitkeep
+
+# Editor and IDE
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Core dumps (use specific patterns to avoid matching src/core/)
+/core
+core.[0-9]*
+vgcore.*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+/tmp/
+
+# Compiled objects
+*.o
+*.a
+*.so
+*.so.*
+
+# Debug files
+*.dSYM/
+
+# Test outputs
+test_output/
+*.test_output

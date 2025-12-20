@@ -1,0 +1,206 @@
+/*
+ * voip-utility - SIP VoIP Testing Utility
+ * Receive command implementation
+ */
+
+#include "cli/cli.h"
+#include "core/sip_ua.h"
+#include "core/account.h"
+#include "core/call.h"
+#include "core/dtmf.h"
+#include "core/media.h"
+#include "util/log.h"
+#include "util/json_output.h"
+#include "util/time_util.h"
+
+extern int vu_is_running(void);
+
+/* Global state for callbacks */
+static vu_call_manager_t *g_call_mgr = NULL;
+static const vu_receive_opts_t *g_opts = NULL;
+static bool g_json_output = false;
+
+static void on_incoming_call(int call_id, const char *from_uri, const char *to_uri)
+{
+    VU_LOG_INFO("Incoming call from %s", from_uri);
+
+    if (g_json_output) {
+        vu_json_output(vu_json_event_incoming_call(call_id, from_uri, to_uri));
+    }
+
+    /* Find call in manager */
+    vu_call_t *call = vu_call_find_by_pjsua_id(g_call_mgr, call_id);
+    if (!call) {
+        /* Create new call entry */
+        pjsua_call_info ci;
+        pjsua_call_get_info(call_id, &ci);
+        call = vu_call_on_incoming(g_call_mgr, call_id, &ci);
+    }
+
+    if (call && g_opts && g_opts->auto_answer) {
+        if (g_opts->answer_delay_ms > 0) {
+            vu_sleep_ms(g_opts->answer_delay_ms);
+        }
+        vu_call_answer(call, 200);
+    }
+}
+
+static void on_dtmf_digit(int call_id, char digit, int duration_ms)
+{
+    if (!g_call_mgr) return;
+
+    vu_call_t *call = vu_call_find_by_pjsua_id(g_call_mgr, call_id);
+    if (call) {
+        vu_call_on_dtmf_digit(call, digit, duration_ms);
+    }
+}
+
+int vu_cmd_receive(const vu_cli_args_t *args, vu_config_t *config)
+{
+    if (!args || !config) return 1;
+
+    const vu_receive_opts_t *opts = &args->cmd.receive;
+    g_opts = opts;
+    g_json_output = args->global.json_output;
+
+    /* Find account */
+    vu_account_config_t *acc_cfg = NULL;
+    if (opts->account_id) {
+        acc_cfg = vu_config_find_account(config, opts->account_id);
+        if (!acc_cfg) {
+            VU_LOG_ERROR("Account not found: %s", opts->account_id);
+            return 1;
+        }
+    } else if (config->account_count > 0) {
+        acc_cfg = &config->accounts[0];
+    } else {
+        VU_LOG_ERROR("No accounts configured");
+        return 1;
+    }
+
+    /* Initialize UA with callbacks */
+    vu_ua_config_t ua_cfg = vu_ua_default_config();
+    vu_error_t err = vu_ua_init(&ua_cfg);
+    if (err != VU_OK) {
+        VU_LOG_ERROR("Failed to initialize SIP UA: %s", vu_error_str(err));
+        return 1;
+    }
+
+    vu_ua_callbacks_t callbacks = {0};
+    callbacks.on_incoming_call = on_incoming_call;
+    callbacks.on_dtmf_digit = on_dtmf_digit;
+    vu_ua_set_callbacks(&callbacks);
+
+    /* Initialize account manager and register */
+    vu_account_manager_t acc_mgr;
+    vu_account_manager_init(&acc_mgr, NULL);
+    vu_account_add(&acc_mgr, acc_cfg);
+
+    /* Set account manager on UA for callbacks */
+    vu_ua_set_account_manager(&acc_mgr);
+
+    vu_account_t *account = &acc_mgr.accounts[0];
+    err = vu_account_register(account);
+    if (err != VU_OK) {
+        VU_LOG_ERROR("Failed to register: %s", vu_error_str(err));
+        vu_ua_shutdown();
+        return 1;
+    }
+
+    err = vu_account_wait_registration(account, 30);
+    if (err != VU_OK) {
+        VU_LOG_ERROR("Registration failed: %s", vu_error_str(err));
+        vu_ua_shutdown();
+        return 1;
+    }
+
+    VU_LOG_INFO("Waiting for incoming calls on %s...", account->config.id);
+
+    /* Initialize call manager */
+    vu_call_manager_t call_mgr;
+    vu_call_manager_init(&call_mgr);
+    vu_ua_set_call_manager(&call_mgr);
+    g_call_mgr = &call_mgr;
+
+    int result = 0;
+
+    /* Wait for incoming call or timeout */
+    vu_timer_t timer;
+    if (opts->timeout_sec > 0) {
+        vu_timer_start(&timer, opts->timeout_sec * 1000);
+    } else {
+        vu_timer_start(&timer, 0);  /* No timeout */
+    }
+
+    vu_call_t *call = NULL;
+    while (vu_is_running() && !vu_timer_expired(&timer)) {
+        vu_ua_poll(100);
+
+        /* Check for connected call */
+        call = vu_call_find_active(&call_mgr);
+        if (call && call->state == VU_CALL_STATE_CONFIRMED) {
+            break;
+        }
+    }
+
+    if (!call || call->state != VU_CALL_STATE_CONFIRMED) {
+        if (opts->timeout_sec > 0) {
+            VU_LOG_WARN("Timeout waiting for incoming call");
+            result = 1;
+        }
+        goto cleanup;
+    }
+
+    VU_LOG_INFO("Call connected");
+    if (args->global.json_output) {
+        double connect_time = (double)(call->connect_time_ms - call->start_time_ms) / 1000.0;
+        vu_json_output(vu_json_event_call_connected(call->pjsua_id, connect_time));
+    }
+
+    /* Start recording if requested */
+    if (opts->record_path) {
+        vu_media_start_recording(call, opts->record_path);
+    }
+
+    /* Play audio if requested */
+    if (opts->play_file) {
+        vu_media_play_file(call, opts->play_file, false);
+    }
+
+    /* Send DTMF if requested */
+    if (opts->dtmf) {
+        vu_sleep_ms(500);
+        vu_dtmf_send(call, opts->dtmf, NULL);
+    }
+
+    /* Wait for hangup or timeout */
+    if (opts->hangup_after_sec > 0) {
+        vu_timer_start(&timer, opts->hangup_after_sec * 1000);
+        while (!vu_timer_expired(&timer) && vu_is_running() &&
+               call->state == VU_CALL_STATE_CONFIRMED) {
+            vu_ua_poll(100);
+        }
+        vu_call_hangup(call, 200);
+    } else {
+        /* Wait until remote hangup or Ctrl+C */
+        while (vu_is_running() && call->state == VU_CALL_STATE_CONFIRMED) {
+            vu_ua_poll(100);
+        }
+    }
+
+    if (args->global.json_output) {
+        vu_json_output(vu_json_event_call_disconnected(call->pjsua_id, 200, "Normal",
+                                                        vu_call_get_duration(call)));
+    }
+
+cleanup:
+    g_call_mgr = NULL;
+    g_opts = NULL;
+    /* Clear managers from UA before cleanup to prevent callback races */
+    vu_ua_set_call_manager(NULL);
+    vu_ua_set_account_manager(NULL);
+    vu_call_manager_cleanup(&call_mgr);
+    vu_account_manager_cleanup(&acc_mgr);
+    vu_ua_shutdown();
+    return result;
+}

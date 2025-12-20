@@ -1,0 +1,26 @@
+{
+  "name": "Basic Call Connection",
+  "description": "Verify basic call connectivity between two extensions",
+  "timeout": 20,
+
+  "caller": {
+    "account": "ext6004",
+    "uri": "sip:6003@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6003",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": []
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

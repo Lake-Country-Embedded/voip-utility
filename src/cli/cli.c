@@ -86,6 +86,8 @@ void vu_cli_print_command_help(vu_command_t cmd)
         printf("  -r, --record <path>      Record audio to file\n");
         printf("  -p, --play <file>        Play audio file during call\n");
         printf("  -d, --dtmf <digits>      Send DTMF digits\n");
+        printf("  -D, --dtmf-delay <ms>    Delay before DTMF (default: 500ms)\n");
+        printf("  -P, --play-delay <ms>    Delay before playing audio (default: 0)\n");
         printf("  -t, --timeout <sec>      Call timeout (default: 60)\n");
         printf("  -H, --hangup-after <sec> Hangup after N seconds\n");
         break;
@@ -187,6 +189,8 @@ static struct option call_options[] = {
     {"record",       required_argument, 0, 'r'},
     {"play",         required_argument, 0, 'p'},
     {"dtmf",         required_argument, 0, 'd'},
+    {"dtmf-delay",   required_argument, 0, 'D'},
+    {"play-delay",   required_argument, 0, 'P'},
     {"timeout",      required_argument, 0, 't'},
     {"hangup-after", required_argument, 0, 'H'},
     {"help",         no_argument,       0, 'h'},
@@ -310,13 +314,16 @@ vu_error_t vu_cli_parse(int argc, char **argv, vu_cli_args_t *args)
 
     case VU_CMD_CALL:
         args->cmd.call.timeout_sec = 60;  /* default */
-        while ((opt = getopt_long(cmd_argc, cmd_argv, "a:u:r:p:d:t:H:h", call_options, NULL)) != -1) {
+        args->cmd.call.dtmf_delay_ms = 500;  /* default delay before DTMF */
+        while ((opt = getopt_long(cmd_argc, cmd_argv, "a:u:r:p:d:D:P:t:H:h", call_options, NULL)) != -1) {
             switch (opt) {
             case 'a': args->cmd.call.account_id = optarg; break;
             case 'u': args->cmd.call.uri = optarg; break;
             case 'r': args->cmd.call.record_path = optarg; break;
             case 'p': args->cmd.call.play_file = optarg; break;
             case 'd': args->cmd.call.dtmf = optarg; break;
+            case 'D': args->cmd.call.dtmf_delay_ms = atoi(optarg); break;
+            case 'P': args->cmd.call.play_delay_ms = atoi(optarg); break;
             case 't': args->cmd.call.timeout_sec = atoi(optarg); break;
             case 'H': args->cmd.call.hangup_after_sec = atoi(optarg); break;
             case 'h': vu_cli_print_command_help(VU_CMD_CALL); exit(0);

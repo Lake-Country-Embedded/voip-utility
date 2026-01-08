@@ -48,6 +48,8 @@ typedef struct vu_call_opts {
     const char *dtmf;           /* DTMF digits to send */
     int timeout_sec;            /* Call timeout (0 = no timeout) */
     int hangup_after_sec;       /* Hangup after N seconds (0 = manual) */
+    int dtmf_delay_ms;          /* Delay before sending DTMF (default 500ms) */
+    int play_delay_ms;          /* Delay before playing audio (0 = play immediately) */
     bool auto_answer;           /* Answer incoming calls */
 } vu_call_opts_t;
 

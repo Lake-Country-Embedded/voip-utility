@@ -129,18 +129,26 @@ int vu_cmd_call(const vu_cli_args_t *args, vu_config_t *config)
         vu_media_start_recording(call, opts->record_path);
     }
 
-    /* Play audio if requested */
-    if (opts->play_file) {
+    /* Play audio immediately if no delay specified */
+    if (opts->play_file && opts->play_delay_ms <= 0) {
         vu_media_play_file(call, opts->play_file, false);
     }
 
     /* Send DTMF if requested */
     if (opts->dtmf) {
-        vu_sleep_ms(500);  /* Small delay before DTMF */
+        VU_LOG_DEBUG("Waiting %d ms before sending DTMF", opts->dtmf_delay_ms);
+        vu_sleep_ms(opts->dtmf_delay_ms);
         vu_dtmf_send(call, opts->dtmf, NULL);
         if (args->global.json_output) {
             vu_json_output(vu_json_event_dtmf_sent(call->pjsua_id, opts->dtmf));
         }
+    }
+
+    /* Play audio after delay if specified */
+    if (opts->play_file && opts->play_delay_ms > 0) {
+        VU_LOG_DEBUG("Waiting %d ms before playing audio", opts->play_delay_ms);
+        vu_sleep_ms(opts->play_delay_ms);
+        vu_media_play_file(call, opts->play_file, false);
     }
 
     /* Wait for hangup or timeout */

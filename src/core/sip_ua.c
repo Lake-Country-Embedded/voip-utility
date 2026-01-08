@@ -18,6 +18,7 @@ static struct {
     vu_call_manager_t *call_mgr;
     pj_caching_pool cp;
     pj_pool_t *pool;
+    pjsua_transport_id udp_transport_id;
     bool initialized;
 } g_ua = {0};
 
@@ -97,18 +98,22 @@ vu_error_t vu_ua_init(const vu_ua_config_t *config)
         return VU_ERR_SIP_INIT;
     }
 
-    /* Add UDP transport */
+    /* Add UDP transport - bind to 0.0.0.0 for IPv4 */
     pjsua_transport_config transport_cfg;
     pjsua_transport_config_default(&transport_cfg);
     transport_cfg.port = cfg.sip_port;
+    /* Explicitly bind to all IPv4 interfaces */
+    transport_cfg.bound_addr = pj_str("0.0.0.0");
 
-    status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &transport_cfg, NULL);
+    status = pjsua_transport_create(PJSIP_TRANSPORT_UDP, &transport_cfg,
+                                     &g_ua.udp_transport_id);
     if (status != PJ_SUCCESS) {
         VU_SET_PJSIP_ERROR(VU_ERR_SIP_TRANSPORT, status, "Failed to create UDP transport");
         pjsua_destroy();
         g_ua.state = VU_UA_STATE_UNINITIALIZED;
         return VU_ERR_SIP_TRANSPORT;
     }
+    VU_LOG_DEBUG("Created UDP transport with ID %d", g_ua.udp_transport_id);
 
     /* Set null audio device if requested */
     if (cfg.use_null_audio) {
@@ -327,4 +332,12 @@ static void on_dtmf_digit2(pjsua_call_id call_id, const pjsua_dtmf_info *info)
     if (g_ua.callbacks.on_dtmf_digit) {
         g_ua.callbacks.on_dtmf_digit(call_id, info->digit, info->duration);
     }
+}
+
+pjsua_transport_id vu_ua_get_udp_transport_id(void)
+{
+    if (!g_ua.initialized) {
+        return -1;
+    }
+    return g_ua.udp_transport_id;
 }

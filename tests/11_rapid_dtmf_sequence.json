@@ -1,0 +1,30 @@
+{
+  "name": "Rapid DTMF Sequence",
+  "description": "Send complete DTMF keypad sequence 0123456789*# in rapid succession. Tests DTMF buffer and timing.",
+  "timeout": 30,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 1},
+      {"action": "send_dtmf", "digits": "0123456789*#"},
+      {"action": "wait", "seconds": 3},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "expect_dtmf", "pattern": "0123456789*#", "timeout": 10}
+    ]
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

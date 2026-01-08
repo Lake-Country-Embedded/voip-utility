@@ -186,7 +186,7 @@ vu_error_t vu_account_register(vu_account_t *account)
     acc_cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
     acc_cfg.cred_info[0].data = pj_str((char*)cfg->password);
 
-    /* Set transport */
+    /* Set transport - bind account to the appropriate transport */
     switch (cfg->transport) {
     case VU_TRANSPORT_TCP:
         /* Would need to add TCP transport */
@@ -194,7 +194,15 @@ vu_error_t vu_account_register(vu_account_t *account)
     case VU_TRANSPORT_TLS:
         /* Would need to add TLS transport */
         break;
+    case VU_TRANSPORT_UDP:
     default:
+        /* Bind to UDP transport */
+        {
+            pjsua_transport_id tp_id = vu_ua_get_udp_transport_id();
+            if (tp_id >= 0) {
+                acc_cfg.transport_id = tp_id;
+            }
+        }
         break;
     }
 

@@ -1,0 +1,33 @@
+{
+  "name": "Multiple Frequency Detection",
+  "description": "Test frequency analysis with different tone frequencies. Plays 800Hz and 1200Hz tones sequentially.",
+  "timeout": 35,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/tone800.wav"},
+      {"action": "wait", "seconds": 2},
+      {"action": "play_audio", "file": "test_audio/tone1200.wav"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 20,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/06_multi_freq.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 2
+  }
+}

@@ -14,29 +14,53 @@ A command-line SIP VoIP testing utility built on PJSIP/PJSUA for automated telep
 
 ## Building
 
-### Dependencies
-
-- GCC or Clang
-- Meson build system
-- PJSIP/PJSUA library (2.x)
-- FFTW3 (single precision)
-- cJSON
-
-On Debian/Ubuntu:
-```bash
-sudo apt install build-essential meson ninja-build
-sudo apt install libfftw3-dev libcjson-dev
-# PJSIP must be built from source or installed separately
-```
-
-### Build
+### Quick Start (Ubuntu 22.04+ / Debian 12+)
 
 ```bash
+# Install dependencies
+sudo apt install build-essential meson ninja-build pkg-config
+sudo apt install libssl-dev libfftw3-dev libcjson-dev libasound2-dev \
+                 uuid-dev libsrtp2-dev libopus-dev
+
+# PJSIP must be built from source - see BUILD.md
+
+# Build voip-utility
 meson setup build
 ninja -C build
 ```
 
 The binary will be at `build/voip-utility`.
+
+### Dependencies
+
+| Dependency | Version | Required | Notes |
+|------------|---------|----------|-------|
+| PJSIP/PJSUA | 2.x | Yes | Must build from source |
+| **OpenSSL** | **3.0+** | Yes | **Critical version requirement** |
+| ALSA | 1.x | Yes | Audio devices |
+| FFTW3 | 3.x | Yes | Single precision (`fftw3f`) |
+| cJSON | 1.x | Yes | JSON parsing |
+| libsrtp2 | 2.x | Yes | SRTP support |
+
+### OpenSSL Version Requirement
+
+**Important:** This project requires OpenSSL 3.0 or later. The PJSIP libraries must be built against the same OpenSSL version.
+
+If you see this error during linking:
+```
+undefined reference to `SSL_get1_peer_certificate'
+```
+
+Your OpenSSL version is too old (1.1.x). See [BUILD.md](BUILD.md) for solutions.
+
+### Detailed Build Instructions
+
+See **[BUILD.md](BUILD.md)** for:
+- Complete dependency installation for all platforms
+- PJSIP build instructions
+- Troubleshooting common build errors
+- Docker build environment
+- Cross-compilation notes
 
 ## Configuration
 
@@ -233,9 +257,113 @@ See `docs/AUTOMATED_TESTING.md` for complete documentation.
 | `wait` | Pause execution | `seconds`: duration |
 | `send_dtmf` | Send DTMF tones | `digits`: string (0-9,*,#,A-D) |
 | `expect_dtmf` | Verify received DTMF | `pattern`: string, `timeout`: seconds |
-| `play_audio` | Play WAV file | `file`: path |
-| `record_audio` | Record to WAV | `file`: path |
+| `play_audio` | Play WAV file | `file`: path to WAV |
+| `record_audio` | Record to WAV | `file`: path to save WAV |
+| `expect_beeps` | Detect beeps in audio | `count`: number, `frequency`: Hz, `timeout`: seconds |
 | `hangup` | End call | `code`: SIP code (default 200) |
+
+## Automated Test Suite
+
+A comprehensive test suite is provided in the `tests/` directory that exercises all voip-utility features using a self-testing approach (the utility tests itself using two SIP extensions).
+
+### Running the Test Suite
+
+```bash
+# Run all tests
+./tests/run_test_suite.sh
+
+# Run specific tests by number
+./tests/run_test_suite.sh 01 04 07
+
+# Quick tests only (tests 01-05)
+./tests/run_test_suite.sh --quick
+
+# Verbose output (shows detailed PJSIP logs)
+./tests/run_test_suite.sh --verbose
+
+# JSON output (for CI integration)
+./tests/run_test_suite.sh --json
+
+# Stop on first failure
+./tests/run_test_suite.sh --stop-on-fail
+
+# List available tests
+./tests/run_test_suite.sh --list
+```
+
+### Test Coverage
+
+| Test | Description |
+|------|-------------|
+| 01_basic_connection | Basic SIP call connect/disconnect between two extensions |
+| 02_dtmf_send_receive | Caller sends DTMF digits, receiver verifies pattern |
+| 03_dtmf_bidirectional | Both sides send and receive DTMF simultaneously |
+| 04_audio_playback_beep_detect | Play audio file on caller, detect beeps on receiver |
+| 05_single_beep_detect | Single beep detection accuracy verification |
+| 06_multiple_frequencies | Detect tones at different frequencies (400Hz, 1000Hz, 1500Hz) |
+| 07_complex_flow_dtmf_then_audio | Scriptable flow: DTMF sequence followed by audio playback |
+| 08_expect_beeps_then_dtmf | Receiver detects beeps, then expects DTMF |
+| 09_bidirectional_audio | Full-duplex audio testing (both sides play and record) |
+| 10_long_duration_call | Extended call stability test (30+ seconds) |
+| 11_rapid_dtmf_sequence | Full DTMF sequence verification (0-9, *, #) |
+| 12_silence_detection | Verify no false positive beep detection on silence |
+
+### Prerequisites
+
+The test suite requires:
+- Two SIP accounts configured in `examples/config.json` (default: ext6010, ext6011)
+- SIP server accessible at the configured address (default: 192.168.10.10)
+- Test audio files in `test_audio/` directory
+- `recordings/` directory for test recordings (created automatically)
+
+### Creating Custom Tests
+
+Test files are JSON documents that define caller and receiver behavior:
+
+```json
+{
+  "name": "My Custom Test",
+  "description": "Description of what this test verifies",
+  "timeout": 30,
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 15,
+    "actions": [
+      {"action": "wait", "seconds": 1},
+      {"action": "send_dtmf", "digits": "123#"},
+      {"action": "play_audio", "file": "test_audio/beep_1000hz.wav"},
+      {"action": "wait", "seconds": 3},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 20,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/my_test.wav"},
+      {"action": "expect_dtmf", "pattern": "123#", "timeout": 10}
+    ]
+  },
+  "expect": {
+    "connected": true,
+    "beep_count": 1,
+    "beep_frequency": 1000
+  }
+}
+```
+
+### Test Expectations
+
+The `expect` section defines pass/fail criteria:
+
+| Field | Description |
+|-------|-------------|
+| `connected` | Verify call was successfully connected |
+| `beep_count` | Number of beeps that should be detected in recording |
+| `beep_frequency` | Expected frequency of detected beeps (Hz) |
+| `dtmf_received` | DTMF pattern that should be received |
 
 ## Exit Codes
 
@@ -302,10 +430,16 @@ voip-utility/
 │       ├── error.c         # Error handling
 │       ├── log.c           # Logging
 │       └── time_util.c     # Time utilities
-├── examples/               # Example configs and tests
+├── tests/                  # Automated test suite
+│   ├── run_test_suite.sh   # Test runner script
+│   ├── 01_basic_connection.json
+│   ├── 02_dtmf_send_receive.json
+│   ├── ...                 # Additional test cases
+│   └── 12_silence_detection.json
+├── examples/               # Example configs
 ├── docs/                   # Documentation
-├── test_audio/             # Test audio files
-└── recordings/             # Call recordings
+├── test_audio/             # Test audio files (WAV)
+└── recordings/             # Call recordings output
 ```
 
 ## License
@@ -331,8 +465,8 @@ cd voip-utility
 meson setup build
 ninja -C build
 
-# Run tests
-./examples/run_all_tests.sh
+# Run test suite
+./tests/run_test_suite.sh
 ```
 
 ### Code Style

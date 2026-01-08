@@ -100,8 +100,16 @@ vu_call_t *vu_call_make(vu_call_manager_t *mgr, vu_account_t *account,
     strncpy(call->account_id, account->config.id, sizeof(call->account_id) - 1);
     call->start_time_ms = vu_time_now_ms();
 
-    /* Make call */
-    pj_str_t dest_uri = pj_str((char *)uri);
+    /* Make call - add transport=udp parameter to force UDP transport selection */
+    char uri_buf[512];
+    if (strstr(uri, "transport=") == NULL) {
+        snprintf(uri_buf, sizeof(uri_buf), "%s;transport=udp", uri);
+    } else {
+        strncpy(uri_buf, uri, sizeof(uri_buf) - 1);
+        uri_buf[sizeof(uri_buf) - 1] = '\0';
+    }
+
+    pj_str_t dest_uri = pj_str(uri_buf);
     pj_status_t status = pjsua_call_make_call(account->pjsua_id, &dest_uri,
                                                NULL, NULL, NULL, &call->pjsua_id);
     if (status != PJ_SUCCESS) {
@@ -114,7 +122,7 @@ vu_call_t *vu_call_make(vu_call_manager_t *mgr, vu_account_t *account,
     mgr->call_count++;
 
     VU_LOG_INFO("Making call: id=%d to=%s from=%s",
-                call->pjsua_id, uri, account->config.id);
+                call->pjsua_id, uri_buf, account->config.id);
 
     return call;
 }

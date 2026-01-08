@@ -1,0 +1,32 @@
+{
+  "name": "Single Beep Detection",
+  "description": "Validate beep detection threshold with a single 1000Hz beep. Tests minimum detection capability.",
+  "timeout": 25,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/beep_1000hz.wav"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/05_single_beep.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 1,
+    "beep_frequency": 1000
+  }
+}

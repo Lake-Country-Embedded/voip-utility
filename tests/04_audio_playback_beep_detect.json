@@ -1,0 +1,32 @@
+{
+  "name": "Audio Playback with Beep Detection",
+  "description": "Core audio test: Caller plays three_beeps.wav, receiver records and detects exactly 3 beeps at 1000Hz.",
+  "timeout": 30,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 4},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/04_beep_test.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3,
+    "beep_frequency": 1000
+  }
+}

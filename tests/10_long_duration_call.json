@@ -1,0 +1,40 @@
+{
+  "name": "Long Duration Call",
+  "description": "Extended call duration test (30+ seconds) with multiple audio and DTMF actions. Tests stability over time.",
+  "timeout": 60,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 15,
+    "actions": [
+      {"action": "wait", "seconds": 2},
+      {"action": "send_dtmf", "digits": "1"},
+      {"action": "wait", "seconds": 5},
+      {"action": "play_audio", "file": "test_audio/beep_1000hz.wav"},
+      {"action": "wait", "seconds": 5},
+      {"action": "send_dtmf", "digits": "2"},
+      {"action": "wait", "seconds": 5},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 5},
+      {"action": "send_dtmf", "digits": "3"},
+      {"action": "wait", "seconds": 5},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 45,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/10_long_duration.wav"},
+      {"action": "expect_dtmf", "pattern": "123", "timeout": 35}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 4
+  }
+}

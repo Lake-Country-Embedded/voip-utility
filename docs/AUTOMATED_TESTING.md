@@ -541,7 +541,55 @@ Ensure accounts in `config.json` match your PBX:
 
 ## Running Multiple Tests
 
-Create a test suite by running tests sequentially:
+### Using the Test Suite Runner
+
+A comprehensive test suite is provided with a full-featured test runner script:
+
+```bash
+# Run all tests
+./tests/run_test_suite.sh
+
+# Run specific tests by number
+./tests/run_test_suite.sh 01 04 07
+
+# Quick mode (tests 01-05 only)
+./tests/run_test_suite.sh --quick
+
+# Verbose output
+./tests/run_test_suite.sh --verbose
+
+# JSON output for CI integration
+./tests/run_test_suite.sh --json
+
+# Stop on first failure
+./tests/run_test_suite.sh --stop-on-fail
+
+# List available tests
+./tests/run_test_suite.sh --list
+```
+
+### Pre-built Test Suite
+
+The `tests/` directory contains 12+ comprehensive tests covering:
+
+| Test | Feature Tested |
+|------|----------------|
+| 01_basic_connection | SIP call connect/disconnect |
+| 02_dtmf_send_receive | DTMF transmission verification |
+| 03_dtmf_bidirectional | Bidirectional DTMF |
+| 04_audio_playback_beep_detect | Audio playback with beep detection |
+| 05_single_beep_detect | Single beep detection accuracy |
+| 06_multiple_frequencies | Multi-frequency tone detection |
+| 07_complex_flow_dtmf_then_audio | Complex scripted call flows |
+| 08_expect_beeps_then_dtmf | Sequential verification |
+| 09_bidirectional_audio | Full-duplex audio |
+| 10_long_duration_call | Call stability (30+ seconds) |
+| 11_rapid_dtmf_sequence | Complete DTMF keypad test |
+| 12_silence_detection | False positive rejection |
+
+### Simple Test Loop
+
+For basic sequential testing without the runner:
 
 ```bash
 #!/bin/bash

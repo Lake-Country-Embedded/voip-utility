@@ -104,4 +104,10 @@ int vu_ua_poll(int timeout_ms);
  */
 pj_pool_t *vu_ua_get_pool(void);
 
+/*
+ * Get UDP transport ID (for account binding)
+ * Returns -1 if no UDP transport is available
+ */
+pjsua_transport_id vu_ua_get_udp_transport_id(void);
+
 #endif /* VU_SIP_UA_H */

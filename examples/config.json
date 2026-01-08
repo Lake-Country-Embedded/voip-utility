@@ -1,8 +1,30 @@
 {
   "accounts": [
     {
-      "id": "ext6004",
-      "username": "6004",
+      "id": "ext6010",
+      "username": "6010",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 3600,
+      "enabled": true
+    },
+    {
+      "id": "ext6011",
+      "username": "6011",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 3600,
+      "enabled": true
+    },
+    {
+      "id": "ext6012",
+      "username": "6012",
       "password": "123456",
       "server": "192.168.10.10",
       "port": 5060,

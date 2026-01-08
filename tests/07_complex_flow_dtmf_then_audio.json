@@ -1,0 +1,35 @@
+{
+  "name": "Complex Flow: DTMF Then Audio",
+  "description": "Scriptable test: connect -> wait -> send DTMF '1234' -> delay -> play beeps. Receiver verifies DTMF then detects beeps.",
+  "timeout": 40,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 1},
+      {"action": "send_dtmf", "digits": "1234"},
+      {"action": "wait", "seconds": 2},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 4},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 25,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/07_complex_flow.wav"},
+      {"action": "expect_dtmf", "pattern": "1234", "timeout": 10}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3,
+    "beep_frequency": 1000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Basic Call Connection",
+  "description": "Verify basic SIP call connectivity between extensions 6010 and 6011. Tests registration and call setup/teardown.",
+  "timeout": 20,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": []
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

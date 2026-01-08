@@ -1,0 +1,35 @@
+{
+  "name": "Beeps Then DTMF Sequence",
+  "description": "Caller plays beeps first, then sends DTMF. Tests sequential action execution and verification order.",
+  "timeout": 40,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 4},
+      {"action": "send_dtmf", "digits": "999#"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 25,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/08_beeps_dtmf.wav"},
+      {"action": "expect_dtmf", "pattern": "999#", "timeout": 15}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3,
+    "beep_frequency": 1000
+  }
+}

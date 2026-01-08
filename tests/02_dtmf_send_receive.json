@@ -1,0 +1,30 @@
+{
+  "name": "DTMF Send and Receive",
+  "description": "Test DTMF digit transmission from caller to receiver using RFC2833. Sends 12345# and verifies reception.",
+  "timeout": 30,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 1},
+      {"action": "send_dtmf", "digits": "12345#"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "expect_dtmf", "pattern": "12345#", "timeout": 10}
+    ]
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

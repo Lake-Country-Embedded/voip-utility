@@ -1,0 +1,34 @@
+{
+  "name": "Bidirectional Audio",
+  "description": "Test full-duplex audio path. Both caller and receiver play audio while recording. Validates audio in both directions.",
+  "timeout": 40,
+
+  "caller": {
+    "account": "ext6010",
+    "uri": "sip:6011@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/09_caller_recv.wav"},
+      {"action": "wait", "seconds": 1},
+      {"action": "play_audio", "file": "test_audio/beep_1000hz.wav"},
+      {"action": "wait", "seconds": 5},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "ext6011",
+    "auto_answer": true,
+    "timeout": 20,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/09_receiver_recv.wav"},
+      {"action": "wait", "seconds": 2},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 1
+  }
+}

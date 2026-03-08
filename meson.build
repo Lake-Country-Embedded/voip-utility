@@ -34,9 +34,21 @@ opus_dep = dependency('opus', required : false)
 # WebRTC audio processing (optional)
 webrtc_dep = dependency('webrtc-audio-processing', required : false)
 
-# PJSIP bundled libraries (built from source, static)
-# These are in /usr/local/lib with architecture suffix
-pjsip_libdir = '/usr/local/lib'
+# PJSIP libraries (static)
+# Look for locally-built pjproject in subprojects/pjproject/install first,
+# then fall back to /usr/local/lib for system-wide installs.
+# Check local pjproject (submodule built by setup script)
+pjsip_local = meson.project_source_root() / 'subprojects' / 'pjproject' / 'install'
+if run_command('test', '-d', pjsip_local / 'lib', check : false).returncode() == 0
+  pjsip_libdir = pjsip_local / 'lib'
+  pjsip_incdir = pjsip_local / 'include'
+  message('Using local pjproject from subprojects/pjproject/install')
+else
+  pjsip_libdir = '/usr/local/lib'
+  pjsip_incdir = '/usr/local/include'
+  message('Using system pjproject from /usr/local')
+endif
+
 arch_suffix = '-x86_64-pc-linux-gnu'
 
 # PJSIP core libraries
@@ -98,7 +110,7 @@ endif
 
 pjsip_dep = declare_dependency(
   dependencies : pjsip_libs,
-  include_directories : include_directories('/usr/local/include'),
+  compile_args : ['-isystem', pjsip_incdir],
 )
 
 # cJSON - try system first, then subproject

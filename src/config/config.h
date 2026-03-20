@@ -81,6 +81,12 @@ typedef struct vu_config {
     char recordings_dir[VU_MAX_PATH_LEN];    /* Directory for recordings */
     char tests_dir[VU_MAX_PATH_LEN];         /* Directory for test files */
 
+    /* TLS settings */
+    char tls_ca_file[VU_MAX_PATH_LEN];       /* CA certificate file */
+    char tls_cert_file[VU_MAX_PATH_LEN];     /* Client certificate file */
+    char tls_key_file[VU_MAX_PATH_LEN];      /* Client private key file */
+    bool tls_verify_server;                  /* Verify server cert (default true) */
+
     /* Logging */
     char log_level[16];                      /* Log level string */
     bool json_output;                        /* Default JSON output mode */

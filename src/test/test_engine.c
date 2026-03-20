@@ -204,6 +204,10 @@ vu_error_t vu_test_engine_run(vu_test_engine_t *engine)
 
     /* Initialize UA */
     vu_ua_config_t ua_cfg = vu_ua_default_config();
+    strncpy(ua_cfg.tls_ca_file, engine->config->tls_ca_file, sizeof(ua_cfg.tls_ca_file) - 1);
+    strncpy(ua_cfg.tls_cert_file, engine->config->tls_cert_file, sizeof(ua_cfg.tls_cert_file) - 1);
+    strncpy(ua_cfg.tls_key_file, engine->config->tls_key_file, sizeof(ua_cfg.tls_key_file) - 1);
+    ua_cfg.tls_verify_server = engine->config->tls_verify_server;
     vu_error_t err = vu_ua_init(&ua_cfg);
     if (err != VU_OK) {
         engine->result.status = VU_TEST_ERROR;
@@ -294,11 +298,16 @@ vu_error_t vu_test_engine_run(vu_test_engine_t *engine)
     /* Wait for call to connect */
     err = vu_call_wait_connected(engine->caller_call, def->caller.timeout_sec);
     if (err != VU_OK) {
-        engine->result.status = VU_TEST_FAILED;
         engine->result.connected = false;
-        snprintf(engine->result.error_message, sizeof(engine->result.error_message),
-                "Call failed to connect");
-        goto cleanup;
+        if (def->expect_connected) {
+            engine->result.status = VU_TEST_FAILED;
+            snprintf(engine->result.error_message, sizeof(engine->result.error_message),
+                    "Call failed to connect");
+            goto cleanup;
+        } else {
+            VU_LOG_INFO("Test: Call failed to connect (expected)");
+            goto evaluate;
+        }
     }
 
     engine->result.connected = true;
@@ -391,6 +400,7 @@ vu_error_t vu_test_engine_run(vu_test_engine_t *engine)
         }
     }
 
+evaluate:
     /* Evaluate test results */
     engine->result.duration_sec = (double)(vu_time_now_ms() - engine->test_start_time_ms) / 1000.0;
 
@@ -400,6 +410,12 @@ vu_error_t vu_test_engine_run(vu_test_engine_t *engine)
         test_passed = false;
         snprintf(engine->result.error_message, sizeof(engine->result.error_message),
                 "Expected call to connect but it didn't");
+    }
+
+    if (!def->expect_connected && engine->result.connected) {
+        test_passed = false;
+        snprintf(engine->result.error_message, sizeof(engine->result.error_message),
+                "Expected call to NOT connect but it did");
     }
 
     if (def->expect_beep_count > 0 && engine->result.beeps_detected != def->expect_beep_count) {

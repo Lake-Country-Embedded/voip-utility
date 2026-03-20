@@ -152,17 +152,18 @@ vu_error_t vu_account_register(vu_account_t *account)
     char id_uri[512];
     char registrar_uri[512];
     const vu_account_config_t *cfg = &account->config;
+    const char *uri_scheme = (cfg->transport == VU_TRANSPORT_TLS) ? "sips" : "sip";
 
     if (cfg->display_name[0]) {
-        snprintf(id_uri, sizeof(id_uri), "\"%s\" <sip:%s@%s>",
-                 cfg->display_name, cfg->username, cfg->server);
+        snprintf(id_uri, sizeof(id_uri), "\"%s\" <%s:%s@%s>",
+                 cfg->display_name, uri_scheme, cfg->username, cfg->server);
     } else {
-        snprintf(id_uri, sizeof(id_uri), "sip:%s@%s",
-                 cfg->username, cfg->server);
+        snprintf(id_uri, sizeof(id_uri), "%s:%s@%s",
+                 uri_scheme, cfg->username, cfg->server);
     }
 
-    snprintf(registrar_uri, sizeof(registrar_uri), "sip:%s:%d",
-             cfg->server, cfg->port);
+    snprintf(registrar_uri, sizeof(registrar_uri), "%s:%s:%d",
+             uri_scheme, cfg->server, cfg->port);
 
     /* Configure PJSUA account */
     pjsua_acc_config acc_cfg;
@@ -189,10 +190,28 @@ vu_error_t vu_account_register(vu_account_t *account)
     /* Set transport - bind account to the appropriate transport */
     switch (cfg->transport) {
     case VU_TRANSPORT_TCP:
-        /* Would need to add TCP transport */
+        {
+            pjsua_transport_id tp_id = vu_ua_get_tcp_transport_id();
+            if (tp_id >= 0) {
+                acc_cfg.transport_id = tp_id;
+            } else {
+                VU_LOG_WARN("TCP transport not available, falling back to UDP");
+                pjsua_transport_id udp_id = vu_ua_get_udp_transport_id();
+                if (udp_id >= 0) acc_cfg.transport_id = udp_id;
+            }
+        }
         break;
     case VU_TRANSPORT_TLS:
-        /* Would need to add TLS transport */
+        {
+            pjsua_transport_id tp_id = vu_ua_get_tls_transport_id();
+            if (tp_id >= 0) {
+                acc_cfg.transport_id = tp_id;
+            } else {
+                VU_SET_ERROR(VU_ERR_SIP_TRANSPORT,
+                             "TLS transport not available - check TLS cert config");
+                return VU_ERR_SIP_TRANSPORT;
+            }
+        }
         break;
     case VU_TRANSPORT_UDP:
     default:
@@ -205,6 +224,21 @@ vu_error_t vu_account_register(vu_account_t *account)
         }
         break;
     }
+
+    /* Configure SRTP */
+    switch (cfg->srtp) {
+    case VU_SRTP_OPTIONAL:
+        acc_cfg.use_srtp = PJMEDIA_SRTP_OPTIONAL;
+        break;
+    case VU_SRTP_MANDATORY:
+        acc_cfg.use_srtp = PJMEDIA_SRTP_MANDATORY;
+        break;
+    case VU_SRTP_DISABLED:
+    default:
+        acc_cfg.use_srtp = PJMEDIA_SRTP_DISABLED;
+        break;
+    }
+    acc_cfg.srtp_secure_signaling = (cfg->transport == VU_TRANSPORT_TLS) ? 1 : 0;
 
     /* Add account to PJSUA */
     pj_status_t status = pjsua_acc_add(&acc_cfg, PJ_TRUE, &account->pjsua_id);

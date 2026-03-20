@@ -19,8 +19,14 @@ static struct {
     pj_caching_pool cp;
     pj_pool_t *pool;
     pjsua_transport_id udp_transport_id;
+    pjsua_transport_id tcp_transport_id;
+    pjsua_transport_id tls_transport_id;
     bool initialized;
-} g_ua = {0};
+} g_ua = {
+    .udp_transport_id = -1,
+    .tcp_transport_id = -1,
+    .tls_transport_id = -1,
+};
 
 /* Forward declarations for PJSUA callbacks */
 static void on_reg_state(pjsua_acc_id acc_id);
@@ -37,7 +43,8 @@ vu_ua_config_t vu_ua_default_config(void)
         .rtp_port_start = 4000,
         .rtp_port_count = 100,
         .use_null_audio = true,  /* No sound device by default */
-        .log_level = 3
+        .log_level = 3,
+        .tls_verify_server = true
     };
     return config;
 }
@@ -114,6 +121,58 @@ vu_error_t vu_ua_init(const vu_ua_config_t *config)
         return VU_ERR_SIP_TRANSPORT;
     }
     VU_LOG_DEBUG("Created UDP transport with ID %d", g_ua.udp_transport_id);
+
+    /* Add TCP transport */
+    {
+        pjsua_transport_config tcp_cfg;
+        pjsua_transport_config_default(&tcp_cfg);
+        tcp_cfg.port = 0;  /* Auto-select */
+        tcp_cfg.bound_addr = pj_str("0.0.0.0");
+
+        status = pjsua_transport_create(PJSIP_TRANSPORT_TCP, &tcp_cfg,
+                                         &g_ua.tcp_transport_id);
+        if (status != PJ_SUCCESS) {
+            VU_LOG_WARN("Failed to create TCP transport (status %d), TCP will be unavailable",
+                        status);
+            g_ua.tcp_transport_id = -1;
+        } else {
+            VU_LOG_DEBUG("Created TCP transport with ID %d", g_ua.tcp_transport_id);
+        }
+    }
+
+    /* Add TLS transport (only if cert files are configured) */
+    if (cfg.tls_cert_file[0] || cfg.tls_ca_file[0]) {
+        pjsua_transport_config tls_cfg;
+        pjsua_transport_config_default(&tls_cfg);
+        tls_cfg.port = 0;  /* Auto-select */
+        tls_cfg.bound_addr = pj_str("0.0.0.0");
+
+        tls_cfg.tls_setting.method = PJSIP_TLSV1_2_METHOD;
+
+        if (cfg.tls_ca_file[0]) {
+            tls_cfg.tls_setting.ca_list_file = pj_str(cfg.tls_ca_file);
+        }
+        if (cfg.tls_cert_file[0]) {
+            tls_cfg.tls_setting.cert_file = pj_str(cfg.tls_cert_file);
+        }
+        if (cfg.tls_key_file[0]) {
+            tls_cfg.tls_setting.privkey_file = pj_str(cfg.tls_key_file);
+        }
+        tls_cfg.tls_setting.verify_server = cfg.tls_verify_server ? PJ_TRUE : PJ_FALSE;
+        tls_cfg.tls_setting.verify_client = PJ_FALSE;  /* We are the client */
+
+        status = pjsua_transport_create(PJSIP_TRANSPORT_TLS, &tls_cfg,
+                                         &g_ua.tls_transport_id);
+        if (status != PJ_SUCCESS) {
+            VU_LOG_WARN("Failed to create TLS transport (status %d), TLS will be unavailable",
+                        status);
+            g_ua.tls_transport_id = -1;
+        } else {
+            VU_LOG_DEBUG("Created TLS transport with ID %d", g_ua.tls_transport_id);
+        }
+    } else {
+        VU_LOG_DEBUG("TLS transport not configured (no cert/CA files specified)");
+    }
 
     /* Set null audio device if requested */
     if (cfg.use_null_audio) {
@@ -340,4 +399,20 @@ pjsua_transport_id vu_ua_get_udp_transport_id(void)
         return -1;
     }
     return g_ua.udp_transport_id;
+}
+
+pjsua_transport_id vu_ua_get_tcp_transport_id(void)
+{
+    if (!g_ua.initialized) {
+        return -1;
+    }
+    return g_ua.tcp_transport_id;
+}
+
+pjsua_transport_id vu_ua_get_tls_transport_id(void)
+{
+    if (!g_ua.initialized) {
+        return -1;
+    }
+    return g_ua.tls_transport_id;
 }

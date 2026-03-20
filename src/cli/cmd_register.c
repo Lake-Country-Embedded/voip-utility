@@ -26,6 +26,10 @@ int vu_cmd_register(const vu_cli_args_t *args, vu_config_t *config)
 
     /* Initialize UA */
     vu_ua_config_t ua_cfg = vu_ua_default_config();
+    strncpy(ua_cfg.tls_ca_file, config->tls_ca_file, sizeof(ua_cfg.tls_ca_file) - 1);
+    strncpy(ua_cfg.tls_cert_file, config->tls_cert_file, sizeof(ua_cfg.tls_cert_file) - 1);
+    strncpy(ua_cfg.tls_key_file, config->tls_key_file, sizeof(ua_cfg.tls_key_file) - 1);
+    ua_cfg.tls_verify_server = config->tls_verify_server;
     vu_error_t err = vu_ua_init(&ua_cfg);
     if (err != VU_OK) {
         VU_LOG_ERROR("Failed to initialize SIP UA: %s", vu_error_str(err));

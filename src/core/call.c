@@ -100,10 +100,11 @@ vu_call_t *vu_call_make(vu_call_manager_t *mgr, vu_account_t *account,
     strncpy(call->account_id, account->config.id, sizeof(call->account_id) - 1);
     call->start_time_ms = vu_time_now_ms();
 
-    /* Make call - add transport=udp parameter to force UDP transport selection */
+    /* Make call - add transport parameter based on account config if not already present */
     char uri_buf[512];
     if (strstr(uri, "transport=") == NULL) {
-        snprintf(uri_buf, sizeof(uri_buf), "%s;transport=udp", uri);
+        const char *transport = vu_transport_name(account->config.transport);
+        snprintf(uri_buf, sizeof(uri_buf), "%s;transport=%s", uri, transport);
     } else {
         strncpy(uri_buf, uri, sizeof(uri_buf) - 1);
         uri_buf[sizeof(uri_buf) - 1] = '\0';

@@ -1,0 +1,104 @@
+{
+  "accounts": [
+    {
+      "id": "open-udp",
+      "username": "6000",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    },
+    {
+      "id": "open-udp-a",
+      "username": "6040",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    },
+    {
+      "id": "open-udp-b",
+      "username": "6041",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5060,
+      "transport": "udp",
+      "srtp": "disabled",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    },
+    {
+      "id": "medium-tls-a",
+      "username": "6050",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5061,
+      "transport": "tls",
+      "srtp": "disabled",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    },
+    {
+      "id": "medium-tls-b",
+      "username": "6051",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5061,
+      "transport": "tls",
+      "srtp": "disabled",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    },
+    {
+      "id": "strict-tls-a",
+      "username": "6070",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5061,
+      "transport": "tls",
+      "srtp": "mandatory",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    },
+    {
+      "id": "strict-tls-b",
+      "username": "6071",
+      "password": "123456",
+      "server": "192.168.10.10",
+      "port": 5061,
+      "transport": "tls",
+      "srtp": "mandatory",
+      "reg_timeout_sec": 300,
+      "enabled": true
+    }
+  ],
+  "tls": {
+    "ca_file": "/home/donald/projects/z-series-monorepo/scripts/config/keys/host-dev/ElectronAcres-CA.crt",
+    "cert_file": "/home/donald/projects/z-series-monorepo/scripts/config/keys/host-dev/automated-testing-donald-linux-battlestation.crt",
+    "key_file": "/home/donald/projects/z-series-monorepo/scripts/config/keys/host-dev/automated-testing-donald-linux-battlestation.key",
+    "verify_server": true
+  },
+  "audio": {
+    "sample_rate": 16000,
+    "frame_duration_ms": 20,
+    "default_codec": "PCMU"
+  },
+  "beep_detection": {
+    "min_level_db": -40,
+    "min_duration_sec": 0.2,
+    "max_duration_sec": 0.6,
+    "target_freq_hz": 0,
+    "freq_tolerance_hz": 50,
+    "gap_duration_sec": 0.1
+  },
+  "recordings_dir": "./recordings",
+  "tests_dir": "./tests",
+  "log_level": "info",
+  "json_output": false
+}

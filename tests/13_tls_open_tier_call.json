@@ -1,0 +1,32 @@
+{
+  "name": "TLS Open Tier Call (UDP)",
+  "description": "Open tier (6000-6049): Call between two UDP extensions. Verifies basic connectivity and audio path on the open security tier.",
+  "timeout": 20,
+
+  "caller": {
+    "account": "open-udp-a",
+    "uri": "sip:6041@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 3},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "open-udp-b",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/13_open_tier.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3,
+    "beep_frequency": 1000
+  }
+}

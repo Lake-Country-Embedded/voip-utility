@@ -1,0 +1,30 @@
+{
+  "name": "Cross-Tier Call: Strict to Open",
+  "description": "Cross-tier call: TLS+SRTP caller (strict tier) calls UDP receiver (open tier). Verifies Asterisk bridges encrypted/unencrypted and DTMF passes through.",
+  "timeout": 20,
+
+  "caller": {
+    "account": "strict-tls-a",
+    "uri": "sips:6040@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "send_dtmf", "digits": "1234"},
+      {"action": "wait", "seconds": 2},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "open-udp-a",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "expect_dtmf", "pattern": "1234", "timeout": 10}
+    ]
+  },
+
+  "expect": {
+    "connected": true
+  }
+}

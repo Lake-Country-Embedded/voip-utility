@@ -48,6 +48,12 @@ typedef struct vu_ua_config {
     uint16_t rtp_port_count;        /* Number of RTP ports (default 100) */
     bool use_null_audio;            /* Use null audio device (no sound) */
     uint32_t log_level;             /* PJSIP log level (0-6) */
+
+    /* TLS settings */
+    char tls_ca_file[512];          /* CA certificate file (empty = not configured) */
+    char tls_cert_file[512];        /* Client certificate file */
+    char tls_key_file[512];         /* Client private key file */
+    bool tls_verify_server;         /* Verify server certificate */
 } vu_ua_config_t;
 
 /*
@@ -109,5 +115,17 @@ pj_pool_t *vu_ua_get_pool(void);
  * Returns -1 if no UDP transport is available
  */
 pjsua_transport_id vu_ua_get_udp_transport_id(void);
+
+/*
+ * Get TCP transport ID (for account binding)
+ * Returns -1 if no TCP transport is available
+ */
+pjsua_transport_id vu_ua_get_tcp_transport_id(void);
+
+/*
+ * Get TLS transport ID (for account binding)
+ * Returns -1 if no TLS transport is available
+ */
+pjsua_transport_id vu_ua_get_tls_transport_id(void);
 
 #endif /* VU_SIP_UA_H */

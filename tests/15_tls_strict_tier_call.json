@@ -1,0 +1,32 @@
+{
+  "name": "TLS Strict Tier Call (TLS+SRTP)",
+  "description": "Strict tier (6070-6099): TLS+SRTP caller calls UDP receiver via Asterisk. Verifies TLS+SRTP registration, encrypted-to-unencrypted bridging, and audio path.",
+  "timeout": 20,
+
+  "caller": {
+    "account": "strict-tls-a",
+    "uri": "sips:6041@192.168.10.10",
+    "timeout": 10,
+    "actions": [
+      {"action": "wait", "seconds": 0.5},
+      {"action": "play_audio", "file": "test_audio/three_beeps.wav"},
+      {"action": "wait", "seconds": 3},
+      {"action": "hangup", "code": 200}
+    ]
+  },
+
+  "receiver": {
+    "account": "open-udp-b",
+    "auto_answer": true,
+    "timeout": 15,
+    "actions": [
+      {"action": "record_audio", "file": "recordings/15_strict_tier.wav"}
+    ]
+  },
+
+  "expect": {
+    "connected": true,
+    "beep_count": 3,
+    "beep_frequency": 1000
+  }
+}

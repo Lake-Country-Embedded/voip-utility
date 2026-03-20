@@ -75,6 +75,12 @@ vu_config_t vu_config_defaults(void)
     safe_strcpy(config.recordings_dir, sizeof(config.recordings_dir), ".");
     safe_strcpy(config.tests_dir, sizeof(config.tests_dir), ".");
 
+    /* TLS settings */
+    config.tls_ca_file[0] = '\0';
+    config.tls_cert_file[0] = '\0';
+    config.tls_key_file[0] = '\0';
+    config.tls_verify_server = true;
+
     /* Logging */
     safe_strcpy(config.log_level, sizeof(config.log_level), "info");
     config.json_output = false;
@@ -319,6 +325,18 @@ vu_error_t vu_config_load(vu_config_t *config, const char *path)
         config->beep.gap_duration_sec = json_get_number(beep, "gap_duration_sec", config->beep.gap_duration_sec);
     }
 
+    /* Parse TLS settings */
+    cJSON *tls = cJSON_GetObjectItem(root, "tls");
+    if (cJSON_IsObject(tls)) {
+        safe_strcpy(config->tls_ca_file, sizeof(config->tls_ca_file),
+                    json_get_string(tls, "ca_file", config->tls_ca_file));
+        safe_strcpy(config->tls_cert_file, sizeof(config->tls_cert_file),
+                    json_get_string(tls, "cert_file", config->tls_cert_file));
+        safe_strcpy(config->tls_key_file, sizeof(config->tls_key_file),
+                    json_get_string(tls, "key_file", config->tls_key_file));
+        config->tls_verify_server = json_get_bool(tls, "verify_server", config->tls_verify_server);
+    }
+
     /* Parse paths */
     safe_strcpy(config->recordings_dir, sizeof(config->recordings_dir),
                 json_get_string(root, "recordings_dir", config->recordings_dir));
@@ -385,6 +403,13 @@ vu_error_t vu_config_save(const vu_config_t *config, const char *path)
     cJSON_AddNumberToObject(beep, "target_freq_hz", config->beep.target_freq_hz);
     cJSON_AddNumberToObject(beep, "freq_tolerance_hz", config->beep.freq_tolerance_hz);
     cJSON_AddNumberToObject(beep, "gap_duration_sec", config->beep.gap_duration_sec);
+
+    /* Add TLS settings */
+    cJSON *tls = cJSON_AddObjectToObject(root, "tls");
+    cJSON_AddStringToObject(tls, "ca_file", config->tls_ca_file);
+    cJSON_AddStringToObject(tls, "cert_file", config->tls_cert_file);
+    cJSON_AddStringToObject(tls, "key_file", config->tls_key_file);
+    cJSON_AddBoolToObject(tls, "verify_server", config->tls_verify_server);
 
     /* Add paths */
     cJSON_AddStringToObject(root, "recordings_dir", config->recordings_dir);

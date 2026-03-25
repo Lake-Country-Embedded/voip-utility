@@ -21,10 +21,9 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Configuration
 VOIP_UTILITY="${PROJECT_DIR}/build/voip-utility"
-CONFIG_FILE="${PROJECT_DIR}/examples/config.json"
+SETUP_SCRIPT="${SCRIPT_DIR}/setup_test_env.sh"
 TESTS_DIR="${SCRIPT_DIR}"
 RECORDINGS_DIR="${PROJECT_DIR}/recordings"
-SIP_SERVER="192.168.10.10"
 
 # Colors for output
 RED='\033[0;31m'
@@ -111,22 +110,40 @@ check_prerequisites() {
         return 1
     fi
 
-    # Check if config file exists
-    if [ ! -f "$CONFIG_FILE" ]; then
-        log_error "Configuration file not found: $CONFIG_FILE"
+    # Generate config from environment.json
+    if [ ! -x "$SETUP_SCRIPT" ]; then
+        log_error "Setup script not found: $SETUP_SCRIPT"
         return 1
     fi
+
+    log_info "Generating test config from environment.json..."
+    local setup_output
+    setup_output=$("$SETUP_SCRIPT" 2>&1)
+    if [ $? -ne 0 ]; then
+        log_error "Failed to generate test config: $setup_output"
+        return 1
+    fi
+    CONFIG_FILE=$(echo "$setup_output" | grep '^VOIP_UTIL_CONFIG=' | cut -d= -f2)
+    if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+        log_error "Generated config not found at: $CONFIG_FILE"
+        return 1
+    fi
+    log_info "Using generated config: $CONFIG_FILE"
 
     # Create recordings directory if needed
     mkdir -p "$RECORDINGS_DIR"
 
-    # Check SIP server connectivity
-    log_info "Checking SIP server connectivity ($SIP_SERVER)..."
-    if ! ping -c 1 -W 2 "$SIP_SERVER" > /dev/null 2>&1; then
-        log_warn "SIP server at $SIP_SERVER is not responding to ping"
-        log_warn "Tests may fail if server is not available"
-    else
-        log_info "SIP server is reachable"
+    # Extract SIP server from generated config and check connectivity
+    local sip_server
+    sip_server=$(jq -r '.accounts[0].server' "$CONFIG_FILE" 2>/dev/null)
+    if [ -n "$sip_server" ] && [ "$sip_server" != "null" ]; then
+        log_info "Checking SIP server connectivity ($sip_server)..."
+        if ! ping -c 1 -W 2 "$sip_server" > /dev/null 2>&1; then
+            log_warn "SIP server at $sip_server is not responding to ping"
+            log_warn "Tests may fail if server is not available"
+        else
+            log_info "SIP server is reachable"
+        fi
     fi
 
     # Verify accounts are configured

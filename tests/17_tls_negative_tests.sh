@@ -15,7 +15,15 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VOIP_UTILITY="${PROJECT_DIR}/build/voip-utility"
-CONFIG_FILE="${PROJECT_DIR}/examples/config-tls-test.json"
+SETUP_SCRIPT="${SCRIPT_DIR}/setup_test_env.sh"
+
+# Generate config from environment.json
+if [[ -x "$SETUP_SCRIPT" ]]; then
+    eval "$("$SETUP_SCRIPT" 2>/dev/null)"
+    CONFIG_FILE="${VOIP_UTIL_CONFIG:-${PROJECT_DIR}/examples/config-tls-test.json}"
+else
+    CONFIG_FILE="${PROJECT_DIR}/examples/config-tls-test.json"
+fi
 
 VERBOSE=false
 [[ "$1" == "--verbose" || "$1" == "-v" ]] && VERBOSE=true
@@ -89,81 +97,37 @@ echo ""
 echo "=== TLS Security Tier Negative Tests ==="
 echo ""
 
-# We need a temporary config with "bad" accounts for negative tests
+# Build negative-test config: deliberately wrong transport/encryption combos
+# Derive server/port/TLS from the generated config
 TMPCONFIG=$(mktemp /tmp/voip-tls-neg-XXXXXX.json)
 trap "rm -f $TMPCONFIG" EXIT
 
-# Create config with accounts that use the wrong transport/encryption
-cat > "$TMPCONFIG" <<'NEGEOF'
-{
-  "accounts": [
-    {
-      "id": "open-udp-ok",
-      "username": "6000",
-      "password": "123456",
-      "server": "192.168.10.10",
-      "port": 5060,
-      "transport": "udp",
-      "srtp": "disabled",
-      "reg_timeout_sec": 300,
-      "enabled": true
-    },
-    {
-      "id": "medium-via-udp",
-      "username": "6050",
-      "password": "123456",
-      "server": "192.168.10.10",
-      "port": 5060,
-      "transport": "udp",
-      "srtp": "disabled",
-      "reg_timeout_sec": 300,
-      "enabled": true
-    },
-    {
-      "id": "strict-via-udp",
-      "username": "6070",
-      "password": "123456",
-      "server": "192.168.10.10",
-      "port": 5060,
-      "transport": "udp",
-      "srtp": "disabled",
-      "reg_timeout_sec": 300,
-      "enabled": true
-    },
-    {
-      "id": "strict-no-srtp",
-      "username": "6070",
-      "password": "123456",
-      "server": "192.168.10.10",
-      "port": 5061,
-      "transport": "tls",
-      "srtp": "disabled",
-      "reg_timeout_sec": 300,
-      "enabled": true
-    }
-  ],
-  "tls": {
-NEGEOF
-
-# Inject the real cert paths from the main config
 python3 -c "
 import json, sys
 with open('$CONFIG_FILE') as f:
     cfg = json.load(f)
-tls = cfg.get('tls', {})
-print(json.dumps(tls, indent=4).lstrip('{').rstrip('}'))
-" >> "$TMPCONFIG"
 
-cat >> "$TMPCONFIG" <<'NEGEOF2'
-  },
-  "audio": {"sample_rate": 16000, "frame_duration_ms": 20, "default_codec": "PCMU"},
-  "beep_detection": {"min_level_db": -40, "min_duration_sec": 0.2, "max_duration_sec": 0.6, "target_freq_hz": 0, "freq_tolerance_hz": 50, "gap_duration_sec": 0.1},
-  "recordings_dir": "./recordings",
-  "tests_dir": "./tests",
-  "log_level": "info",
-  "json_output": false
-}
-NEGEOF2
+accts = {a['id']: a for a in cfg['accounts']}
+udp_acct = next(a for a in cfg['accounts'] if a['transport'] == 'udp')
+server = udp_acct['server']
+udp_port = udp_acct['port']
+
+def bad_account(aid, src_id, transport, srtp='disabled', port=None):
+    src = accts[src_id]
+    return {
+        'id': aid, 'username': src['username'], 'password': src['password'],
+        'server': server, 'port': port or udp_port,
+        'transport': transport, 'srtp': srtp,
+        'reg_timeout_sec': 300, 'enabled': True
+    }
+
+cfg['accounts'] = [
+    bad_account('open-udp-ok', 'ext6010', 'udp'),
+    bad_account('medium-via-udp', 'ext6050', 'udp'),
+    bad_account('strict-via-udp', 'ext6070', 'udp'),
+]
+json.dump(cfg, sys.stdout, indent=2)
+" > "$TMPCONFIG"
 
 # Override CONFIG_FILE for negative tests
 CONFIG_FILE="$TMPCONFIG"

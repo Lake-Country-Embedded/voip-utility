@@ -4,8 +4,8 @@
   "timeout": 20,
 
   "caller": {
-    "account": "strict-tls-a",
-    "uri": "sips:6040@192.168.10.10",
+    "account": "ext6070",
+    "uri": "sips:6010@192.168.10.10",
     "timeout": 10,
     "actions": [
       {"action": "wait", "seconds": 0.5},
@@ -16,7 +16,7 @@
   },
 
   "receiver": {
-    "account": "open-udp-a",
+    "account": "ext6010",
     "auto_answer": true,
     "timeout": 15,
     "actions": [

@@ -60,10 +60,23 @@ int vu_cmd_call(const vu_cli_args_t *args, vu_config_t *config)
     strncpy(ua_cfg.tls_cert_file, config->tls_cert_file, sizeof(ua_cfg.tls_cert_file) - 1);
     strncpy(ua_cfg.tls_key_file, config->tls_key_file, sizeof(ua_cfg.tls_key_file) - 1);
     ua_cfg.tls_verify_server = config->tls_verify_server;
+    if (args->global.sip_port > 0) {
+        ua_cfg.sip_port = (uint16_t)args->global.sip_port;
+    }
     vu_error_t err = vu_ua_init(&ua_cfg);
     if (err != VU_OK) {
         VU_LOG_ERROR("Failed to initialize SIP UA: %s", vu_error_str(err));
         return 1;
+    }
+
+    if (args->global.codecs) {
+        err = vu_ua_set_codec_filter(args->global.codecs);
+        if (err != VU_OK) {
+            VU_LOG_ERROR("Failed to apply codec filter '%s': %s",
+                         args->global.codecs, vu_error_str(err));
+            vu_ua_shutdown();
+            return 1;
+        }
     }
 
     /* Initialize account manager and register */

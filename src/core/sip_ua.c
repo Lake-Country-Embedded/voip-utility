@@ -208,6 +208,41 @@ vu_error_t vu_ua_init(const vu_ua_config_t *config)
     return VU_OK;
 }
 
+vu_error_t vu_ua_set_codec_filter(const char *spec)
+{
+    if (!spec || !*spec) {
+        return VU_OK;  /* No filter requested: leave all codecs enabled. */
+    }
+    if (!g_ua.initialized) {
+        VU_SET_ERROR(VU_ERR_NOT_INITIALIZED, "UA not initialized");
+        return VU_ERR_NOT_INITIALIZED;
+    }
+
+    pjsua_codec_info codecs[PJMEDIA_CODEC_MGR_MAX_CODECS];
+    unsigned count = PJ_ARRAY_SIZE(codecs);
+    pj_status_t status = pjsua_enum_codecs(codecs, &count);
+    if (status != PJ_SUCCESS) {
+        VU_SET_PJSIP_ERROR(VU_ERR_SIP_INIT, status, "pjsua_enum_codecs failed");
+        return VU_ERR_SIP_INIT;
+    }
+
+    /* Disable every codec, then re-enable only the requested one. */
+    for (unsigned i = 0; i < count; i++) {
+        pjsua_codec_set_priority(&codecs[i].codec_id, PJMEDIA_CODEC_PRIO_DISABLED);
+    }
+
+    pj_str_t want = pj_str((char *)spec);
+    status = pjsua_codec_set_priority(&want, PJMEDIA_CODEC_PRIO_HIGHEST);
+    if (status != PJ_SUCCESS) {
+        VU_SET_PJSIP_ERROR(VU_ERR_SIP_INIT, status,
+                           "pjsua_codec_set_priority failed for '%s'", spec);
+        return VU_ERR_SIP_INIT;
+    }
+
+    VU_LOG_INFO("Codec filter applied: only '%s' enabled", spec);
+    return VU_OK;
+}
+
 void vu_ua_shutdown(void)
 {
     if (!g_ua.initialized) {

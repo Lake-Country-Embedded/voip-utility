@@ -67,6 +67,14 @@ vu_ua_config_t vu_ua_default_config(void);
 vu_error_t vu_ua_init(const vu_ua_config_t *config);
 
 /*
+ * Restrict the active codec set to those whose codec id matches `spec`
+ * (e.g. "PCMU/8000/1"). All other codecs are disabled (priority 0) and the
+ * match is set to highest priority. A NULL/empty spec is a no-op (all codecs
+ * left enabled). Must be called after vu_ua_init().
+ */
+vu_error_t vu_ua_set_codec_filter(const char *spec);
+
+/*
  * Shutdown the SIP User Agent
  */
 void vu_ua_shutdown(void);

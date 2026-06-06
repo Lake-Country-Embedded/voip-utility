@@ -30,6 +30,8 @@ typedef struct vu_global_opts {
     bool json_output;
     bool verbose;
     bool quiet;
+    int sip_port;               /* Local SIP listen port (0 = auto/config) */
+    const char *codecs;         /* Codec filter, e.g. "PCMU/8000/1" (NULL = all) */
 } vu_global_opts_t;
 
 /* Register command options */

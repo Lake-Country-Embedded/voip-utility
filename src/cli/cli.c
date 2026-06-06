@@ -54,6 +54,8 @@ void vu_cli_print_help(const char *program_name)
     printf("  -j, --json             Output in JSON format\n");
     printf("  -v, --verbose          Enable verbose output (debug level)\n");
     printf("  -q, --quiet            Quiet mode (errors only)\n");
+    printf("      --sip-port <port>  Local SIP listen port (0 = auto)\n");
+    printf("      --codecs <spec>    Restrict to a codec, e.g. PCMU/8000/1\n");
     printf("  -h, --help             Show help for command\n");
     printf("  -V, --version          Show version\n\n");
 
@@ -161,6 +163,10 @@ static vu_command_t parse_command(const char *str)
     return VU_CMD_NONE;
 }
 
+/* Long-only global option values (no short equivalent) */
+#define VU_OPT_SIP_PORT 1000
+#define VU_OPT_CODECS   1001
+
 /* Global options (parsed before command) */
 static struct option global_options[] = {
     {"config",    required_argument, 0, 'c'},
@@ -170,6 +176,8 @@ static struct option global_options[] = {
     {"quiet",     no_argument,       0, 'q'},
     {"help",      no_argument,       0, 'h'},
     {"version",   no_argument,       0, 'V'},
+    {"sip-port",  required_argument, 0, VU_OPT_SIP_PORT},
+    {"codecs",    required_argument, 0, VU_OPT_CODECS},
     {0, 0, 0, 0}
 };
 
@@ -265,6 +273,12 @@ vu_error_t vu_cli_parse(int argc, char **argv, vu_cli_args_t *args)
             break;
         case 'q':
             args->global.quiet = true;
+            break;
+        case VU_OPT_SIP_PORT:
+            args->global.sip_port = atoi(optarg);
+            break;
+        case VU_OPT_CODECS:
+            args->global.codecs = optarg;
             break;
         case 'h':
             args->command = VU_CMD_HELP;

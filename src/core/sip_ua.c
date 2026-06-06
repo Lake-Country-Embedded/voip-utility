@@ -226,20 +226,43 @@ vu_error_t vu_ua_set_codec_filter(const char *spec)
         return VU_ERR_SIP_INIT;
     }
 
-    /* Disable every codec, then re-enable only the requested one. */
+    /* Disable every codec, then re-enable only the requested one(s). */
     for (unsigned i = 0; i < count; i++) {
         pjsua_codec_set_priority(&codecs[i].codec_id, PJMEDIA_CODEC_PRIO_DISABLED);
     }
 
-    pj_str_t want = pj_str((char *)spec);
-    status = pjsua_codec_set_priority(&want, PJMEDIA_CODEC_PRIO_HIGHEST);
-    if (status != PJ_SUCCESS) {
-        VU_SET_PJSIP_ERROR(VU_ERR_SIP_INIT, status,
-                           "pjsua_codec_set_priority failed for '%s'", spec);
-        return VU_ERR_SIP_INIT;
+    /* `spec` may be a comma-separated list (e.g. "opus/48000/2,PCMU/8000/1").
+     * Enable each one, giving earlier entries higher priority so the order in
+     * the spec is the preference order PJSIP advertises. */
+    char buf[256];
+    strncpy(buf, spec, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+
+    unsigned enabled = 0;
+    pj_uint8_t prio = PJMEDIA_CODEC_PRIO_HIGHEST;
+    char *saveptr = NULL;
+    for (char *tok = strtok_r(buf, ",", &saveptr); tok;
+         tok = strtok_r(NULL, ",", &saveptr)) {
+        while (*tok == ' ') tok++;          /* trim leading spaces */
+        if (*tok == '\0') continue;
+
+        pj_str_t want = pj_str(tok);
+        status = pjsua_codec_set_priority(&want, prio);
+        if (status == PJ_SUCCESS) {
+            enabled++;
+            if (prio > PJMEDIA_CODEC_PRIO_NORMAL) prio--;  /* keep order, stay high */
+        } else {
+            VU_LOG_WARN("Codec '%s' not available, skipping", tok);
+        }
     }
 
-    VU_LOG_INFO("Codec filter applied: only '%s' enabled", spec);
+    if (enabled == 0) {
+        VU_SET_ERROR(VU_ERR_INVALID_ARG,
+                     "No codecs from filter '%s' are available", spec);
+        return VU_ERR_INVALID_ARG;
+    }
+
+    VU_LOG_INFO("Codec filter applied: %u codec(s) enabled from '%s'", enabled, spec);
     return VU_OK;
 }
 

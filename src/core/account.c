@@ -152,7 +152,13 @@ vu_error_t vu_account_register(vu_account_t *account)
     char id_uri[512];
     char registrar_uri[512];
     const vu_account_config_t *cfg = &account->config;
-    const char *uri_scheme = (cfg->transport == VU_TRANSPORT_TLS) ? "sips" : "sip";
+    /* TLS can be expressed either as the "sips:" scheme or as
+     * "sip:...;transport=tls". RingCentral (use_sips=false) requires the
+     * latter and rejects sips with 416 Unsupported URI Scheme. */
+    bool tls_param = (cfg->transport == VU_TRANSPORT_TLS) && !cfg->use_sips;
+    const char *uri_scheme =
+        (cfg->transport == VU_TRANSPORT_TLS && cfg->use_sips) ? "sips" : "sip";
+    const char *tparam = tls_param ? ";transport=tls" : "";
 
     if (cfg->display_name[0]) {
         snprintf(id_uri, sizeof(id_uri), "\"%s\" <%s:%s@%s>",
@@ -162,8 +168,8 @@ vu_error_t vu_account_register(vu_account_t *account)
                  uri_scheme, cfg->username, cfg->server);
     }
 
-    snprintf(registrar_uri, sizeof(registrar_uri), "%s:%s:%d",
-             uri_scheme, cfg->server, cfg->port);
+    snprintf(registrar_uri, sizeof(registrar_uri), "%s:%s:%d%s",
+             uri_scheme, cfg->server, cfg->port, tparam);
 
     /* Configure PJSUA account */
     pjsua_acc_config acc_cfg;
@@ -174,6 +180,21 @@ vu_error_t vu_account_register(vu_account_t *account)
     acc_cfg.reg_timeout = cfg->reg_timeout_sec;
     acc_cfg.reg_retry_interval = cfg->reg_retry_interval_sec;
 
+    /* Optional outbound proxy (required by carriers like RingCentral that
+     * register/route through a dedicated edge proxy rather than the domain). */
+    static char proxy_uri[512];
+    if (cfg->proxy[0]) {
+        if (strstr(cfg->proxy, "sip:") == cfg->proxy ||
+            strstr(cfg->proxy, "sips:") == cfg->proxy) {
+            snprintf(proxy_uri, sizeof(proxy_uri), "%s", cfg->proxy);
+        } else {
+            snprintf(proxy_uri, sizeof(proxy_uri), "%s:%s",
+                     uri_scheme, cfg->proxy);
+        }
+        acc_cfg.proxy_cnt = 1;
+        acc_cfg.proxy[0] = pj_str(proxy_uri);
+    }
+
     /* Configure RTP port - use 0 to let PJSUA pick an available port */
     pjsua_transport_config_default(&acc_cfg.rtp_cfg);
     acc_cfg.rtp_cfg.port = 0;  /* Auto-select RTP port */
@@ -183,7 +204,9 @@ vu_error_t vu_account_register(vu_account_t *account)
     /* Use "*" to match any realm if no specific realm is configured */
     acc_cfg.cred_info[0].realm = pj_str(cfg->realm[0] ? (char*)cfg->realm : "*");
     acc_cfg.cred_info[0].scheme = pj_str("digest");
-    acc_cfg.cred_info[0].username = pj_str((char*)cfg->username);
+    /* Authorization ID may differ from the SIP username (RingCentral). */
+    acc_cfg.cred_info[0].username =
+        pj_str((char*)(cfg->auth_id[0] ? cfg->auth_id : cfg->username));
     acc_cfg.cred_info[0].data_type = PJSIP_CRED_DATA_PLAIN_PASSWD;
     acc_cfg.cred_info[0].data = pj_str((char*)cfg->password);
 

@@ -159,9 +159,17 @@ static vu_error_t parse_account(const cJSON *json, vu_account_config_t *account)
                 json_get_string(json, "realm", ""));
     safe_strcpy(account->display_name, sizeof(account->display_name),
                 json_get_string(json, "display_name", ""));
+    safe_strcpy(account->proxy, sizeof(account->proxy),
+                json_get_string(json, "proxy", ""));
+    safe_strcpy(account->auth_id, sizeof(account->auth_id),
+                json_get_string(json, "auth_id", ""));
 
     account->port = (uint16_t)json_get_number(json, "port", 5060);
     account->transport = vu_transport_from_string(json_get_string(json, "transport", "udp"));
+    /* Default: TLS implies sips: scheme (prior behavior). RingCentral sets
+     * use_sips=false to register as sip:...;transport=tls. */
+    account->use_sips = json_get_bool(json, "use_sips",
+                                      account->transport == VU_TRANSPORT_TLS);
     account->srtp = vu_srtp_mode_from_string(json_get_string(json, "srtp", "disabled"));
     account->reg_timeout_sec = (uint32_t)json_get_number(json, "reg_timeout_sec", 3600);
     account->reg_retry_interval_sec = (uint32_t)json_get_number(json, "reg_retry_interval_sec", 30);
@@ -380,7 +388,10 @@ vu_error_t vu_config_save(const vu_config_t *config, const char *path)
         cJSON_AddNumberToObject(account, "port", acc->port);
         cJSON_AddStringToObject(account, "realm", acc->realm);
         cJSON_AddStringToObject(account, "display_name", acc->display_name);
+        cJSON_AddStringToObject(account, "proxy", acc->proxy);
+        cJSON_AddStringToObject(account, "auth_id", acc->auth_id);
         cJSON_AddStringToObject(account, "transport", vu_transport_name(acc->transport));
+        cJSON_AddBoolToObject(account, "use_sips", acc->use_sips);
         cJSON_AddStringToObject(account, "srtp", vu_srtp_mode_name(acc->srtp));
         cJSON_AddNumberToObject(account, "reg_timeout_sec", acc->reg_timeout_sec);
         cJSON_AddNumberToObject(account, "reg_retry_interval_sec", acc->reg_retry_interval_sec);

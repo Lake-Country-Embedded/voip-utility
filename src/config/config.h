@@ -39,9 +39,19 @@ typedef struct vu_account_config {
     uint16_t port;                           /* SIP port (default 5060) */
     char realm[VU_MAX_URI_LEN];              /* Auth realm (often same as server) */
     char display_name[VU_MAX_USERNAME_LEN];
+    char proxy[VU_MAX_URI_LEN];              /* Outbound proxy URI (e.g. RingCentral
+                                                "sip:sip10.ringcentral.com:5090").
+                                                Empty = none. */
+    char auth_id[VU_MAX_USERNAME_LEN];       /* Auth/authorization ID, when it differs
+                                                from username (RingCentral). Empty =
+                                                use username. */
 
     vu_transport_t transport;
     vu_srtp_mode_t srtp;
+    bool use_sips;                           /* For TLS: use the "sips:" URI scheme
+                                                (true) vs "sip:...;transport=tls"
+                                                (false, e.g. RingCentral). Defaults
+                                                to true when transport is TLS. */
 
     uint32_t reg_timeout_sec;                /* Registration expiry (default 3600) */
     uint32_t reg_retry_interval_sec;         /* Retry on failure (default 30) */

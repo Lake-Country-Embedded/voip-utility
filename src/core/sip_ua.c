@@ -140,8 +140,11 @@ vu_error_t vu_ua_init(const vu_ua_config_t *config)
         }
     }
 
-    /* Add TLS transport (only if cert files are configured) */
-    if (cfg.tls_cert_file[0] || cfg.tls_ca_file[0]) {
+    /* Always add a TLS transport. A TLS client only needs a CA when it
+     * verifies the server cert; carriers like RingCentral require TLS but the
+     * client can connect with verification disabled and no local cert/CA. The
+     * cert/CA/verify settings below are still honored when provided. */
+    {
         pjsua_transport_config tls_cfg;
         pjsua_transport_config_default(&tls_cfg);
         tls_cfg.port = 0;  /* Auto-select */
@@ -170,8 +173,6 @@ vu_error_t vu_ua_init(const vu_ua_config_t *config)
         } else {
             VU_LOG_DEBUG("Created TLS transport with ID %d", g_ua.tls_transport_id);
         }
-    } else {
-        VU_LOG_DEBUG("TLS transport not configured (no cert/CA files specified)");
     }
 
     /* Set null audio device if requested */
